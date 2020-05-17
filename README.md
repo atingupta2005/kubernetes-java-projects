@@ -1,8 +1,47 @@
+#On client machine (Ubuntu) Install Azure CLI on Ubuntu Machine by participants
+#https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+#Connect to Kubernetes Cluster:
+#Refer: https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough-portal
+az login
+
+az account list --refresh --output table
+
+az account set --subscription "06cd1590-77ab-47ac-8ee2-79cabe2d5efb"
+
+#Install the Kubernetes CLI on Client Machines to connect to the Kubernetes Cluster
+sudo az aks install-cli
+
+
+#If needed Create a Kubernetes cluster
+az aks create \
+    --resource-group agrg \
+    --name atingupta2005-cluster \
+    --node-count 4 \
+    --generate-ssh-keys \
+    --attach-acr <acrName>
+	
+
+#List and Connect to an AKS cluster using the Azure CLI
+sudo az aks list -o table
+sudo az aks get-credentials --resource-group agrg --name atingupta2005-cluster
+
+# Using kubectl config get-contexts we'll be able to see all the clusters we've authenticated against, regardless what subscription they're in:
+sudo kubectl config get-contexts
+
+#Switch cluster:
+sudo kubectl config use-context atingupta2005-cluster
+
+kubectl get nodes
+
 ## First Commands
 
 ```
 kubectl create deployment hello-world-rest-api --image=atingupta2005/hello-world-rest-api:0.0.1.RELEASE
 kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
+kubectl get service
+curl <ipaddress>:8080
 ```
 #### Required Tools
 
@@ -24,6 +63,7 @@ docker run -p 8080:8080 atingupta2005/hello-world-rest-api:0.0.1.RELEASE
 kubectl create deployment hello-world-rest-api --image=atingupta2005/hello-world-rest-api:0.0.1.RELEASE
 kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
 kubectl scale deployment hello-world-rest-api --replicas=3
+kubectl get pods
 kubectl delete pod hello-world-rest-api-58ff5dd898-62l9d
 kubectl autoscale deployment hello-world-rest-api --max=10 --cpu-percent=70
 kubectl edit deployment hello-world-rest-api #minReadySeconds: 15
