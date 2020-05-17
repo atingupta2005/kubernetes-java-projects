@@ -69,7 +69,6 @@ kubectl autoscale deployment hello-world-rest-api --max=10 --cpu-percent=70
 kubectl edit deployment hello-world-rest-api #minReadySeconds: 15
 kubectl set image deployment hello-world-rest-api hello-world-rest-api=atingupta2005/hello-world-rest-api:0.0.2.RELEASE
 
-gcloud container clusters get-credentials atingupta2005-cluster --zone us-central1-a --project solid-course-258105
 kubectl create deployment hello-world-rest-api --image=atingupta2005/hello-world-rest-api:0.0.1.RELEASE
 kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
 kubectl set image deployment hello-world-rest-api hello-world-rest-api=DUMMY_IMAGE:TEST
