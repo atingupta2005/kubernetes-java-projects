@@ -1,3 +1,18 @@
+# Below are the steps and commands
+
+#### Required Tools
+
+- Java 8+
+- Eclipse - Recent Version 
+- Maven
+- Git
+- Docker
+- Kubernetes
+- ELB CLI
+- Cloud Account
+
+
+
 #On client machine (Ubuntu) Install Azure CLI on Ubuntu Machine by participants
 #https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
@@ -14,7 +29,7 @@ az account set --subscription "06cd1590-77ab-47ac-8ee2-79cabe2d5efb"
 sudo az aks install-cli
 
 
-#If needed Create a Kubernetes cluster
+### If needed Create a Kubernetes cluster
 az aks create \
     --resource-group agrg \
     --name atingupta2005-cluster \
@@ -33,26 +48,21 @@ sudo kubectl config get-contexts
 #Switch cluster:
 sudo kubectl config use-context atingupta2005-cluster
 
+#If there is permission issue and user need to use sudo then run below command:
+sudo chown -R $USER ~/.kube
+
+#Kubectl Autocomplete
+source <(kubectl completion bash) # setup autocomplete in bash into the current shell, bash-completion package should be installed first.
+echo "source <(kubectl completion bash)" >> ~/.bashrc # add autocomplete permanently to your bash shell.
+
+kubectl get namespaces
+kubectl create namespace $USER
+#kubectl delete namespaces $USER
+
+#permanently save the namespace for all subsequent kubectl commands in that context.
+kubectl config set-context --current --namespace=$USER
+
 kubectl get nodes
-
-## First Commands
-
-```
-kubectl create deployment hello-world-rest-api --image=atingupta2005/hello-world-rest-api:0.0.1.RELEASE
-kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
-kubectl get service
-curl <ipaddress>:8080
-```
-#### Required Tools
-
-- Java 8+
-- Eclipse - Recent Version 
-- Maven
-- Git
-- Docker
-- Kubernetes
-- ELB CLI
-- Cloud Account
 
 ### Commands Executed
 
