@@ -15,10 +15,13 @@
 
 #On client machine (Ubuntu) Install Azure CLI on Ubuntu Machine by participants
 #https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+- curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 #Connect to Kubernetes Cluster:
+
 #Refer: https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough-portal
+
+```
 az login
 
 az account list --refresh --output table
@@ -63,6 +66,7 @@ kubectl create namespace $USER
 kubectl config set-context --current --namespace=$USER
 
 kubectl get nodes
+```
 
 ### Commands Executed
 
