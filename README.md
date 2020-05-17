@@ -27,7 +27,7 @@ az aks create \
 sudo az aks list -o table
 sudo az aks get-credentials --resource-group agrg --name atingupta2005-cluster
 
-# Using kubectl config get-contexts we'll be able to see all the clusters we've authenticated against, regardless what subscription they're in:
+#Using kubectl config get-contexts we'll be able to see all the clusters we've authenticated against, regardless what subscription they're in:
 sudo kubectl config get-contexts
 
 #Switch cluster:
