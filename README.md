@@ -514,7 +514,6 @@ kubectl get svc
 kubectl get all
 kubectl get pods
 
-###-------------------- Working here. Below commands are not working
 kubectl apply -f todo-web-application-deployment.yaml,todo-web-application-service.yaml
 kubectl get all
 kubectl get pods
