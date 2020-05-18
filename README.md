@@ -13,14 +13,12 @@
 
 
 
-#On client machine (Ubuntu) Install Azure CLI on Ubuntu Machine by participants
-#https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
+##### On client machine (Ubuntu) Install Azure CLI on Ubuntu Machine by participants
+```
 - curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+```
 
-#Connect to Kubernetes Cluster:
-
-#Refer: https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough-portal
-
+##### Connect to Kubernetes Cluster:
 ```
 az login
 
@@ -28,18 +26,11 @@ az account list --refresh --output table
 
 az account set --subscription "06cd1590-77ab-47ac-8ee2-79cabe2d5efb"
 
-#Install the Kubernetes CLI on Client Machines to connect to the Kubernetes Cluster
+```
+
+##### Install the Kubernetes CLI on Client Machines to connect to the Kubernetes Cluster
+```
 sudo az aks install-cli
-
-
-### If needed Create a Kubernetes cluster
-az aks create \
-    --resource-group agrg \
-    --name atingupta2005-cluster \
-    --node-count 4 \
-    --generate-ssh-keys \
-    --attach-acr <acrName>
-	
 
 #List and Connect to an AKS cluster using the Azure CLI
 sudo az aks list -o table
