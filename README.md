@@ -62,10 +62,37 @@ kubectl get nodes
 ### Commands Executed
 
 ```
+# Run below commands to connect to Azure Kubernetes Cluster
+# Use these commands if Azure Cluster and your namespace is already created
+az login
+sudo az aks get-credentials --resource-group agrg --name atingupta2005-cluster
+# To install Kubectl refer: https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-on-windows
+sudo kubectl config use-context atingupta2005-cluster
+source <(kubectl completion bash) # setup autocomplete in bash into the current shell, bash-completion package should be installed first.
+echo "source <(kubectl completion bash)" >> ~/.bashrc # add autocomplete permanently to your bash shell.
+kubectl get namespaces
+kubectl config set-context --current --namespace=$USER
+kubectl get nodes
+
+
 #Login to ubuntu where Docker is installed and run:
 sudo docker run -d -p 8080:8080 atingupta2005/hello-world-rest-api:0.0.1.RELEASE
 docker ps
 # Visit <publicIP>:8080/hello-world
+
+#0.--------------To start Kubernetes Dashboard.
+Refer: https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v0.0/aio/deploy/recommended.yaml
+
+#To get Token:
+kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
+
+#To enable SSH Tunnel:
+https://blog.mobatek.net/post/ssh-tunnels-and-port-forwarding/
+
+Open URL for Dashboard:
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
 
 #1.-------Deploy Docker image in Kubernetes
 kubectl create deployment hello-world-rest-api --image=atingupta2005/hello-world-rest-api:0.0.1.RELEASE
@@ -280,11 +307,12 @@ kubectl delete all -l app=hello-world-rest-api
 kubectl get all
 wget https://raw.githubusercontent.com/atingupta2005/01-hello-world-rest-api/master/backup/deployment-01-after-cleanup.yaml
 vim deployment-01-after-cleanup.yaml
+#----Imp: Make sure to change the ImagePullPolicy to Always
 kubectl apply -f deployment-01-after-cleanup.yaml
 kubectl get all
 
 #Take the external IP and browse on the website at port 8080
-kubectl get service
+watch kubectl get service
 
 #10.----------------Understanding Kubernetes YAML Configuration - Labels and Selectors
 #Open the final yaml file we created previously and understand it.
@@ -384,7 +412,7 @@ watch curl http://<externalIP>:8080/hello-world
 #14.-------------Setting up 02 Spring Boot Todo Web Application in Local
 Import the project from https://github.com/atingupta2005/02-todo-web-application-h2.git
 #Build the project using: Run As->Maven Build
-In Goal Specify: clean verify
+In Goal Specify: clean install
 Add the generated jar file in GitHub
 Commit the changes
 Push to GitHub
@@ -399,11 +427,14 @@ kubectl get pods
 kubectl get all
 rm -rf deployment.yaml
 wget https://raw.githubusercontent.com/atingupta2005/02-todo-web-application-h2/master/backup/deployment.yaml
+#-----Make sure to change ImagePullPolicy to Always and image tag to latest
+vim deployment.yaml
 kubectl apply -f deployment.yaml
 kubectl get all
 #Wait for 10-20 seconds
 kubectl get all
-#Get the External IP and check on the browser
+#Get the External IP and check on the browser - http://<ipaddress>:8080/login
+#Username: atingupta2005, password: dummy
 
 # Now if we do any changes in the code and commit to GitHub, Our Docker image will be built automatically.
 # --- Important: Remember to build the jar file before pushing to GitHub
@@ -514,6 +545,7 @@ kubectl get svc
 kubectl get all
 kubectl get pods
 
+###-------------------- Working here. Below commands are not working
 kubectl apply -f todo-web-application-deployment.yaml,todo-web-application-service.yaml
 kubectl get all
 kubectl get pods
@@ -644,6 +676,30 @@ helm rollback currency-services-1 1
 helm upgrade currency-services-1 ./currency-conversion/ --debug --dry-run
 helm upgrade currency-services-1 ./currency-conversion/
 helm history currency-services-1
+
+
+#Extra commands:
+#Generally when the status of your pod is ImgaePullBackOff the sytem automatically tries to 
+#re-pull the image in a matter of minutes, 
+#if you actually want to restart the pod then 
+#you'll probably have to delete the pod and recreate it.
+kubectl replace --force -f <pod yaml file>
+
+#Restart Deployment
+kubectl rollout restart <deployment-name>
+
+#Point to note/remember:
+ - If we create deployment without YAML file then latest image is not pulled. 
+ - We need to use a new image tag to force a image repull
+
+
+#Extra leraning topics:
+# How to assign the POD to specific Node.
+https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+
+#Referenes:
+Cheatcheat:
+https://kubernetes.io/docs/reference/kubectl/cheatsheet/
 
 ```
 
