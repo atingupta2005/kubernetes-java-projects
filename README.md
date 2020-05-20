@@ -341,27 +341,19 @@ kubectl diff -f deployment-01-after-cleanup.yaml
 #If there are any changes we can deploy the configuration using yaml file
 kubectl apply -f deployment-01-after-cleanup.yaml
 
-#11.-----------------------Quick Fix to reduce release downtime with minReadySeconds
+#11.-----------------------Reduce release downtime with minReadySeconds
 #When we update the image tag to update the release, there is a few seconds downtime
-
-#Let's first change the image tag and then deploy the deployment
-kubectl diff -f deployment-01-after-cleanup.yaml
-
-#Let's before applying deployment, use below:
-watch -n 0.1 curl http://<IPAddress>:8080/hello-world
-
-#Let's deploy and quickly see the watch 
-kubectl apply -f deployment-01-after-cleanup.yaml
-
-#Quickly see if there is any connection refused.
+#To boot up a POD, it might take time and Kubernetes just assumes that since the new pod is now running, it deletes the old pod.
+#New POD is running but it might take time to load the services inside it.
+#Its better to tell Kubernetes to wait for some seconds before deleting the old POD
 
 # To solve it specify below parameter inside spec: in yaml file:
 
 minReadySeconds: 45
 
-# Rollback to previous version by modifying the image tag in yaml file and running below command
 kubectl apply -f deployment-01-after-cleanup.yaml
-# Confirm again and notice that the downtime is now reduced
+
+# Notice that the downtime is now reduced
 
 
 #12.-----------------Understanding Replica Sets in Depth - Using Kubernetes YAML Config
@@ -373,22 +365,34 @@ wget https://raw.githubusercontent.com/atingupta2005/01-hello-world-rest-api/mas
 kubectl get all
 kubectl delete all -l app=hello-world-rest-api
 kubectl delete horizontalpodautoscaler.autoscaling/hello-world-rest-api
-kubectl apply -f deployment-02-using-replica-set.yaml # It’s in fact Replicaset definition only
+
+# It’s in fact Replicaset definition only. Check the kind property
+vim deployment-02-using-replica-set.yaml
+
+kubectl apply -f deployment-02-using-replica-set.yaml
+
 watch -n 0.1 curl http://52.191.33.131:8080/hello-world
-kubectl get all  #We don't see the deployment
+
+#We don't see the deployment
+kubectl get all  
 
 #If we change the image tag/name then below command will do no impact:
 vim deployment-02-using-replica-set.yaml
 kubectl get all
 kubectl apply -f deployment-02-using-replica-set.yaml
 kubectl get all   #We don't see the deployment
-kubectl get pods #We will not see any new pods as Replicaset only cares for maintaining number of replicas as needed
 
-#Really update the revision:
+#We will not see any new pods as Replicaset only cares for maintaining number of replicas as needed
+kubectl get pods 
+
+#Now update the revision by deleting the pod:
 kubectl delete pod <>
-kubectl get pods    # New pod with new version if now created
 
+# New pod with new version if now created
+kubectl get pods
+kubectl get service
 #Watch the curl output and notice that version is coming different as only 1 pod is updated with new image
+watch http:<ip>:8080
 
 kubectl delete pod <>  # Delete another older pod also
 kubectl get pods    #Both the pods are now having latest release
@@ -396,10 +400,20 @@ kubectl get pods    #Both the pods are now having latest release
 #So it’s better to use deployment if we need automatic updates
 
 #13.----------------Configure Multiple Kubernetes Deployments with One Service
-wget https://raw.githubusercontent.com/atingupta2005/01-hello-world-rest-api/master/backup/deployment-03-Multiple-Deployments-With-Same-Service.yaml
-#Modify the file deployment-03-Multiple-Deployments-With-Same-Service.yaml to remove selector from service
+#We can configure the connect a service to the pods using selectors.
+#Each artifact in Kubernetes is assigned label/values.
+#These label/values are used by other artifacts as selectors
 kubectl delete all -l app=hello-world-rest-api
+
+
+#Modify the file deployment-03-Multiple-Deployments-With-Same-Service.yaml to remove selector from service
+#Below is the modified file
+wget https://raw.githubusercontent.com/atingupta2005/01-hello-world-rest-api/master/backup/deployment-03-Multiple-Deployments-With-Same-Service.yaml
+
+#Remove the label selector from the service to select multiple pods 
+vim deployment-03-Multiple-Deployments-With-Same-Service.yaml
 kubectl get all
+
 kubectl apply -f deployment-03-Multiple-Deployments-With-Same-Service.yaml
 
 # Get the External IP
@@ -410,13 +424,16 @@ watch curl http://<externalIP>:8080/hello-world
 
 
 #14.-------------Setting up 02 Spring Boot Todo Web Application in Local
-Import the project from https://github.com/atingupta2005/02-todo-web-application-h2.git
+#Import the project from 
+ - https://github.com/atingupta2005/02-todo-web-application-h2.git
+
 #Build the project using: Run As->Maven Build
-In Goal Specify: clean install
-Add the generated jar file in GitHub
-Commit the changes
-Push to GitHub
-The Docker image will be created automatically on Docker hub
+ - In Goal Specify: clean install
+ - Add the generated jar file in GitHub
+ - Commit the changes
+ - Push to GitHub
+
+#The Docker image will be created automatically on Docker hub
 
 #15.-------------Pushing Docker Image to Docker Hub for Spring Boot Todo Web App
 # It's automatically being pushed in our case.
@@ -427,6 +444,8 @@ kubectl get pods
 kubectl get all
 rm -rf deployment.yaml
 wget https://raw.githubusercontent.com/atingupta2005/02-todo-web-application-h2/master/backup/deployment.yaml
+
+#Using ImagePullPolicy we can change our release on Kubernetes
 #-----Make sure to change ImagePullPolicy to Always and image tag to latest
 vim deployment.yaml
 kubectl apply -f deployment.yaml
@@ -532,11 +551,11 @@ vim todo-web-application-service.yaml
 #We can also download these files from the below URLs:
 #It’s better to use the cleaned up files from below URLs.
 rm -rf mysql-database-data-volume-persistentvolumeclaim.yaml mysql-deployment.yaml mysql-service.yaml todo-web-application-deployment.yaml todo-web-application-service.yaml
-wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/mysql-database-data-volume-persistentvolumeclaim.yaml
-wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/mysql-deployment.yaml
-wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/mysql-service.yaml
-wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/todo-web-application-deployment.yaml
-wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/todo-web-application-service.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/01-updated-manually/mysql-database-data-volume-persistentvolumeclaim.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/01-updated-manually/mysql-deployment.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/01-updated-manually/mysql-service.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/01-updated-manually/todo-web-application-deployment.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/01-updated-manually/todo-web-application-service.yaml
 
 #25.---------------Deploy MySQL Database to Kubernetes Cluster
 kubectl delete all -l app=todo-web-application-h2
@@ -545,13 +564,36 @@ kubectl get svc
 kubectl get all
 kubectl get pods
 
+#Connect to mysql
+#Change service to load balancer to get External IP - mysql-service.yaml
+sudo snap install mysql-shell
+mysqlsh
+\connect todos-user@52.184.90.8 
+#password is dummytodos
+\sql
+use todos;
+select * from todos;
+## Todo table is created when we launch the app
+\q
+
+#-------Note 2-3 minutes to allow the containers of mysql spin-up
 kubectl apply -f todo-web-application-deployment.yaml,todo-web-application-service.yaml
 kubectl get all
 kubectl get pods
+kubectl get service
 
 kubectl logs todo-web-application-b65cc44d9-7h9pr -f
 
-kubectl apply -f mysql-service.yaml
+# Now browse the app and. Username: in28minutes or atingupta2005. Password: dummy
+
+#-----------Next let's stop our config values and passwords centrally in persistent volume
+rm -rf mysql-database-data-volume-persistentvolumeclaim.yaml mysql-deployment.yaml mysql-service.yaml todo-web-application-deployment.yaml todo-web-application-service.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/mysql-database-data-volume-persistentvolumeclaim.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/mysql-deployment.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/mysql-service.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/todo-web-application-deployment.yaml
+wget https://raw.githubusercontent.com/atingupta2005/03-todo-web-application-mysql/master/backup/02-final-backup-at-end-of-course/todo-web-application-service.yaml
+
 kubectl get pv
 kubectl get pvc
 kubectl describe pod/mysql-5ccbbbdcd8-5zjqg 
@@ -561,33 +603,27 @@ kubectl get configmap todo-web-application-config
 kubectl describe configmap/todo-web-application-config
 
 kubectl edit configmap/todo-web-application-config
-kubectl scale deployment todo-web-application --replicas=0
-kubectl scale deployment todo-web-application --replicas=1
+  RDS_DB_NAME: todos
+  RDS_HOSTNAME: mysql
+  RDS_PASSWORD: dummytodos
+  RDS_PORT: "3306"
+  RDS_USERNAME: todos-user
 
-kubectl edit configmap/todo-web-application-config
 kubectl apply -f todo-web-application-deployment.yaml 
-kubectl edit configmap todo-web-application-config
 kubectl scale deployment todo-web-application --replicas=0
 kubectl scale deployment todo-web-application --replicas=1
 
 kubectl create secret generic todo-web-application-secrets --from-literal=RDS_PASSWORD=dummytodos
 kubectl get secret/todo-web-application-secrets
 kubectl describe secret/todo-web-application-secrets
+
 kubectl apply -f todo-web-application-deployment.yaml 
+kubectl scale deployment todo-web-application --replicas=0
+kubectl scale deployment todo-web-application --replicas=1
 
-kubectl delete -f mysql-database-data-volume-persistentvolumeclaim.yaml,mysql-deployment.yaml,mysql-service.yaml,todo-web-application-deployment.yaml,todo-web-application-service.yaml
+#kubectl delete -f mysql-database-data-volume-persistentvolumeclaim.yaml,mysql-deployment.yaml,mysql-service.yaml,todo-web-application-deployment.yaml,todo-web-application-service.yaml
 
-apiVersion: v1
-data:
-  RDS_DB_NAME: todos
-  RDS_HOSTNAME: mysql
-  RDS_PORT: "3306"
-  RDS_USERNAME: todos-user
-kind: ConfigMap
-metadata:
-  name: todo-web-application-config
-  namespace: default
-
+#-------------------
 cd /atingupta2005/git/kubernetes-java-projects/04-currency-exchange-microservice-basic 
 mvn clean install
 docker push atingupta2005/currency-exchange:0.0.1-RELEASE
@@ -686,6 +722,10 @@ kubectl replace --force -f <pod yaml file>
 
 #Restart Deployment
 kubectl rollout restart <deployment-name>
+#We can just scale down and scale up to redeploy
+kubectl scale deployment todo-web-application --replicas=0
+kubectl scale deployment todo-web-application --replicas=1
+
 
 #Point to note/remember:
  - If we create deployment without YAML file then latest image is not pulled. 
