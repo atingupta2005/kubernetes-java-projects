@@ -347,7 +347,7 @@ kubectl apply -f deployment-01-after-cleanup.yaml
 #New POD is running but it might take time to load the services inside it.
 #Its better to tell Kubernetes to wait for some seconds before deleting the old POD
 
-# To solve it specify below parameter inside spec: in yaml file:
+# To solve it specify below parameter inside spec: in yaml file -> spec.minReadySeconds above template tag:
 
 minReadySeconds: 45
 
@@ -623,12 +623,27 @@ kubectl scale deployment todo-web-application --replicas=1
 
 #kubectl delete -f mysql-database-data-volume-persistentvolumeclaim.yaml,mysql-deployment.yaml,mysql-service.yaml,todo-web-application-deployment.yaml,todo-web-application-service.yaml
 
-#-------------------
-cd /atingupta2005/git/kubernetes-java-projects/04-currency-exchange-microservice-basic 
-mvn clean install
-docker push atingupta2005/currency-exchange:0.0.1-RELEASE
+#25-------------------Deploying Basic Spring Boot Microservices to Kubernetes
+#Open below projects in Eclipse:
+ - https://github.com/atingupta2005/04-currency-exchange-microservice-basic
+ - https://github.com/atingupta2005/05-currency-conversion-microservice-basic
+
+#Build both the projects and upload to github along with jar files
+
+#Push the built project to GITHub
+
+#Download Kubernetes YAML Files for below URLs:
+wget https://raw.githubusercontent.com/atingupta2005/04-currency-exchange-microservice-basic/master/00-configmap-currency-conversion.yaml
+wget https://raw.githubusercontent.com/atingupta2005/04-currency-exchange-microservice-basic/master/deployment.yaml
+wget https://raw.githubusercontent.com/atingupta2005/05-currency-conversion-microservice-basic/master/deployment.yaml
+wget https://raw.githubusercontent.com/atingupta2005/05-currency-conversion-microservice-basic/master/ingress.yaml
+wget https://raw.githubusercontent.com/atingupta2005/05-currency-conversion-microservice-basic/master/ingress_azure.yaml
+
 kubectl apply -f deployment.yaml
-curl 34.67.103.178:8000/currency-exchange/from/USD/to/INR
+kubectl get all
+kubectl get service
+
+curl <IPAddress>:8000/currency-exchange/from/USD/to/INR
 
 kubectl create configmap currency-conversion --from-literal=YOUR_PROPERTY=value --from-literal=YOUR_PROPERTY_2=value2
 
@@ -719,6 +734,19 @@ helm history currency-services-1
 #if you actually want to restart the pod then 
 #you'll probably have to delete the pod and recreate it.
 kubectl replace --force -f <pod yaml file>
+
+kubectl delete --all namespaces
+kubectl delete --all deployments --namespace=foo
+kubectl delete pods --all
+kubectl delete deployment --all
+kubectl delete rc --all
+kubectl delete rs --all
+kubectl delete service -l provider=fabric8
+kubectl delete secret -l provider=fabric8
+kubectl delete ingress --all
+kubectl delete configmap --all
+kubectl delete sa --all
+
 
 #Restart Deployment
 kubectl rollout restart <deployment-name>
