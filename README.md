@@ -633,17 +633,18 @@ kubectl scale deployment todo-web-application --replicas=1
 #Push the built project to GITHub
 
 #Download Kubernetes YAML Files for below URLs:
+rm -rf deployment_currency_exchange.yaml deployment_currency_conversion.yaml 00-configmap-currency-conversion.yaml ingress.yaml ingress_azure.yaml
 wget https://raw.githubusercontent.com/atingupta2005/04-currency-exchange-microservice-basic/master/00-configmap-currency-conversion.yaml
-wget https://raw.githubusercontent.com/atingupta2005/04-currency-exchange-microservice-basic/master/deployment.yaml
-wget https://raw.githubusercontent.com/atingupta2005/05-currency-conversion-microservice-basic/master/deployment.yaml
+wget -O  deployment_currency_exchange.yaml  https://raw.githubusercontent.com/atingupta2005/04-currency-exchange-microservice-basic/master/deployment.yaml
+wget -O deployment_currency_conversion.yaml https://raw.githubusercontent.com/atingupta2005/05-currency-conversion-microservice-basic/master/deployment.yaml
 wget https://raw.githubusercontent.com/atingupta2005/05-currency-conversion-microservice-basic/master/ingress.yaml
 wget https://raw.githubusercontent.com/atingupta2005/05-currency-conversion-microservice-basic/master/ingress_azure.yaml
 
-kubectl apply -f deployment.yaml
+kubectl apply -f deployment_currency_exchange.yaml
 kubectl get all
 kubectl get service
 
-curl <IPAddress>:8000/currency-exchange/from/USD/to/INR
+curl http://52.190.47.94:8000/currency-exchange/from/USD/to/INR
 
 kubectl create configmap currency-conversion --from-literal=YOUR_PROPERTY=value --from-literal=YOUR_PROPERTY_2=value2
 
