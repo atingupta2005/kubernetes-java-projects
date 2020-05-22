@@ -81,18 +81,23 @@ docker ps
 # Visit <publicIP>:8080/hello-world
 
 #0.--------------To start Kubernetes Dashboard.
-Refer: https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md
+#Referenceses:
+ - https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/aks/kubernetes-dashboard.md
+ - https://blog.mobatek.net/post/ssh-tunnels-and-port-forwarding/
 
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v0.0/aio/deploy/recommended.yaml
+az aks browse --resource-group agrg --name atingupta2005-cluster
 
-#To get Token:
-kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
+kubectl create clusterrolebinding kubernetes-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
 
-#To enable SSH Tunnel:
-https://blog.mobatek.net/post/ssh-tunnels-and-port-forwarding/
+#Create a SSH Tunnel using below guide:
+#https://blog.mobatek.net/post/ssh-tunnels-and-port-forwarding/
+#Below are the values to be specified:
+  My Computer->Forwared Port: 8001
+  SSH Server: IP: <IP of Remote Machine>, Username: <Your User ID>, Port: 22
+# Now connect and it would ask for password. Specifify correct password and continue.
 
-Open URL for Dashboard:
-http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+#Now open the Dashboard using below URL:
+ http://127.0.0.1:8001/api/v1/namespaces/kube-system/services/http:kubernetes-dashboard:/proxy/
 
 #1.-------Deploy Docker image in Kubernetes
 kubectl create deployment hello-world-rest-api --image=atingupta2005/hello-world-rest-api:0.0.1.RELEASE
@@ -568,7 +573,7 @@ kubectl get pods
 #Change service to load balancer to get External IP - mysql-service.yaml
 sudo snap install mysql-shell
 mysqlsh
-\connect todos-user@52.184.90.8 
+\connect todos-user@52.150.39.158
 #password is dummytodos
 \sql
 use todos;
@@ -583,6 +588,8 @@ kubectl get pods
 kubectl get service
 
 kubectl logs todo-web-application-b65cc44d9-7h9pr -f
+
+kubectl get service
 
 # Now browse the app and. Username: in28minutes or atingupta2005. Password: dummy
 
@@ -644,90 +651,186 @@ kubectl apply -f deployment_currency_exchange.yaml
 kubectl get all
 kubectl get service
 
-curl http://52.190.47.94:8000/currency-exchange/from/USD/to/INR
+curl http://52.170.172.91:8000/currency-exchange/from/USD/to/INR
+
+kubectl apply -f deployment_currency_conversion.yaml
+kubectl get all
+kubectl get service
+
+http://<>:8100/currency-conversion/from/EUR/to/INR/quantity/10
+
+## Question: How services discover each other?
+ - Refer to proxy java file -> CURRENCY_EXCHANGE_SERVICE_HOST
+ - This Environment Variable is auto created by following conversion and the IP is stored in it
+ - Verify by:
+    - kubectl log <podname> -f 
+ - The approach above can make a problem. Since the above environment variable is created only after service is created.
+ - What will happen if the service is not created before the other service which is dependent.
+ - To solve, we can also make use of CURRENCY_EXCHANGE_URI: http://currency-exchange
+   - Refer to deployment file and proxy
+
+kubectl logs currency-conversion-76fd9b6958-tt7vk | grep CURRENCY_EXCHANGE_URI
+kubectl logs currency-conversion-76fd9b6958-tt7vk | grep CURRENCY_EXCHANGE
+kubectl logs currency-conversion-76fd9b6958-tt7vk | grep CURRENCY_EXCHANGE_SERVICE_HOST
 
 kubectl create configmap currency-conversion --from-literal=YOUR_PROPERTY=value --from-literal=YOUR_PROPERTY_2=value2
 
+kubectl delete deployment.apps/currency-conversion
+
+kubectl apply -f deployment_currency_conversion.yaml
+
+#-------Ingress
+vim ingress_azure.yaml
+
+#Review the yaml file
+
+kubectl apply -f ingress_azure.yaml
+
+#Ingress creation take approx 10 minutes. So we need to wait
+
+# By the time lets review how the LoadBalancer is connected with Azure Portal
+
+#Now let's see the ingress details. If it's still not showing IP address then wait for another 5-10 minutes. 
+kubectl get ingress
+
+#Now since we don't need Load Balancers for our Microservices, we will change type from LoadBalancer to NodePort
+vim deployment_currency_conversion.yaml
+#Change type of service to NodePort
+
+vim deployment_currency_exchange.yaml
+#Change type of service to NodePort
+
+
+#Check that the services are of type LoadBalancers
+kubectl get svc
+
+kubectl apply -f deployment_currency_exchange.yaml
+kubectl apply -f deployment_currency_conversion.yaml
+ 
+#Now check if Load Balancers have been changed to NodePort
+kubectl get svc
+
+Once we get the IP of Ingress, check if you are able to open both the Microservices from the same IP.
+curl http://<IngressIP>/currency-exchange/from/USD/to/INR
+curl http://<IngressIP>/currency-conversion/from/EUR/to/INR/quantity/10
+
+
+#----------Auto Scaling
+#Horizontal
+#Vertical
+#Can scale as per:
+ - Cluster Autoscaling: Number of Nodes. While creating the Cluster enable the autoscaling features
+ - Horizontal POD Autoscaling: Number of Pods
+ - Vertical POD Autoscaling: Increase resources(RAM?CPU) of the POD. Need to specify while creating the cluster
+
+#Horizontal POD Autoscaling 
+wget -O deploment_currency_exchange_autoscale.yaml https://raw.githubusercontent.com/atingupta2005/04-currency-exchange-microservice-basic/master/deployment.yaml
+vim deploment_currency_exchange_autoscale.yaml
+
+#Review the file for autoscaling features
+Modify the CPU usage Limists. Min 100, max 500
+kubectl deployment -f deploment_currency_exchange_autoscale.yaml
+kubectl get pods
+kubectl logs <podID> -f
+kubectl top pods
+watch -n 0.1 curl curl http://<IngressIP>/currency-conversion/from/EUR/to/INR/quantity/10
+watch -n 0.1 kubectl top pods
+
+#Let's autoscale deployment based on CPU usage
 kubectl auto scale deployment currency-exchange --min=1 --max=3 --cpu-percent=10 
+watch -n 0.1 kubectl get pods  # PODS will be created/deleted automatically based on the Load
+
+#Let' see the events.
 kubectl get events
+
+#Use yaml style for the same
 kubectl get hpa
 kubectl get hpa -o yaml
-kubectl get hpa -o yaml > 01-hpa.yaml
 kubectl get hpa currency-exchange -o yaml > 01-hpa.yaml
 
-kubectl set image deployment hello-world-rest-api --image=atingupta2005/hello-world-rest-api:0.0.4-SNAPSHOT
-kubectl apply -f ingress.yaml
-kubectl get ingress
-kubectl describe gateway-ingress
-kubectl describe gateway gateway-ingress
-kubectl describe ingress gateway-ingress
-kubectl apply -f rbac.yml
+vim hpa.yaml
+
+#Review the content and delete metadata
+
+#Helm Charts--------------------------------------------------------
+#Installing Help Client:
+#Refer - https://helm.sh/docs/intro/install/
+#For Linux:
+ sudo snap install helm --classic
  
-docker push atingupta2005/currency-conversion:0.0.5-RELEASE
-
-kubectl create configmap currency-conversion --from-literal=YOUR_PROPERTY=value --from-literal=YOUR_PROPERTY_2=value2
-
-kubectl describe configmap/currency-conversion
-
-
-kubectl label namespace default istio-injection=enabled
-
-kubectl get svc --namespace istio-system
-kubectl apply -f 01-helloworld-deployment.yaml 
-kubectl apply -f 02-creating-http-gateway.yaml 
-kubectl apply -f 03-creating-virtualservice-external.yaml 
-kubectl get svc --namespace istio-system
-kubectl get svc istio-ingressgateway --namespace istio-system
-kubectl scale deployment hello-world-rest-api --replicas=4
-kubectl delete all -l app=hello-world-rest-api
-kubectl apply -f 04-helloworld-multiple-deployments.yaml 
-kubectl apply -f 05-helloworld-mirroring.yaml 
-kubectl apply -f 06-helloworld-canary.yaml 
-watch -n 0.1 curl 35.223.25.220/hello-world
-
-gcloud container clusters get-credentials atingupta2005-cluster-istio --zone us-central1-a --project solid-course-258105
-kubectl create namespace istio-system
-curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.2.2 sh -
-ls istio-1.2.2
-ls istio-1.2.2/install/kubernetes/helm/istio-init/files/crd*yaml
-cd istio-1.2.2
-for i in install/kubernetes/helm/istio-init/files/crd*yaml; do kubectl apply -f $i; done
-helm template install/kubernetes/helm/istio --name istio --set global.mtls.enabled=false --set tracing.enabled=true --set kiali.enabled=true --set grafana.enabled=true --namespace istio-system > istio.yaml
-kubectl apply -f istio.yaml
-kubectl get pods --namespace istio-system
-kubectl get services --namespace istio-system
-
-
-docker push atingupta2005/currency-exchange:3.0.0-RELEASE
-kubectl apply -f deployment.yaml 
-kubectl apply -f 11-istio-scripts-and-configuration/07-hw-virtualservice-all-services.yaml 
-kubectl get secret -n istio-system kiali
-kubectl create secret generic kiali -n istio-system --from-literal=username=admin --from-literal=passphrase=admin
-kubectl get svc --namespace istio-system
-
-
-gcloud container clusters get-credentials helm-cluster --zone us-central1-a --project solid-course-258105
+#Installing Tiller
+wget https://raw.githubusercontent.com/atingupta2005/kubernetes-java-projects/master/12-helm/helm-tiller.sh
+vim helm-tiller.sh 
+sh helm-tiller.sh
 helm init
-kubectl get deploy,svc tiller-deploy -n kube-system
-clear
-unzip 12-helm.zip
-ls helm-tiller.sh
-chmod +x helm-tiller.sh
+helm init --upgrade
+helm init --service-account tiller --upgrade
 
-gcloud container clusters get-credentials helm-cluster --zone us-central1-a --project solid-course-258105
-./helm-tiller.sh
-cat helm-tiller.sh 
-kubectl get deploy,svc tiller-deploy -n kube-system
+
+#Practical Examples
+wget https://raw.githubusercontent.com/atingupta2005/kubernetes-java-projects/master/12-helm/currency-conversion.zip
+wget https://raw.githubusercontent.com/atingupta2005/12-helm/master/currency-exchange.zip
+sudo apt install -y  unzip
+unzip currency-conversion.zip
+unzip currency-exchange.zip
+
+cd  currency-exchange
+
+vim Chart.yaml
+vim values.yaml
+cd templates
+
+#Variables are used in this template
+microservice-deployment.yaml
+
+#Install Helm Chart
 helm install ./currency-exchange/ --name=currency-services
+
+
+#Install Helm Chart
 helm install ./currency-conversion/ --name=currency-services-1
+
+
+#Before Install Helm Chart, do a dry run
 helm install ./currency-conversion/ --name=currency-services-3 --debug --dry-run
-helm history currency-services-1
-helm upgrade currency-services-1 ./currency-conversion/
-helm rollback currency-services-1 1
-helm upgrade currency-services-1 ./currency-conversion/ --debug --dry-run
-helm upgrade currency-services-1 ./currency-conversion/
+
+#Get the IP Address:
+kubectl get all
+kubectl get svc
+kubectl get pods
+
+#Visit:
+curl <IP>:8000/currency-exchange/from/EUR/to/INR
+curl <IP>:8100/currency-exchange/from/EUR/to/INR/quantity/10
+
+#To see a history of Helm Chart Deployment
 helm history currency-services-1
 
+#Do some changes in yaml file
+vim values.yaml
+
+#Upgrade the help chart to reflect the changes
+helm upgrade currency-services-1 ./currency-conversion/
+
+#We can also rollback
+helm history currency-services-1
+helm rollback currency-services-1 1
+
+helm history currency-services-1
+
+kubectl delete all -l app=currency-exchange
+
+helm repo list
+
+helm search
+
+helm search mysql
+
+helm inspect stable/mysql
+
+helm inspect values stable/mysql
+
+#----------------------------------------------------
 
 #Extra commands:
 #Generally when the status of your pod is ImgaePullBackOff the sytem automatically tries to 
@@ -768,6 +871,11 @@ https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
 #Referenes:
 Cheatcheat:
 https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+
+Kubernetes Tools
+https://dzone.com/articles/50-useful-kubernetes-tools
+https://techbeacon.com/enterprise-it/9-top-open-source-tools-monitoring-kubernetes
+https://logz.io/blog/open-source-monitoring-tools-for-kubernetes/
 
 ```
 
